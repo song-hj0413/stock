@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ symbol }} 주가정보</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .content-wrapper {
+            display: flex;
+            gap: 20px;
+        }
+        .news-section, .chart-section {
+            flex: 1;
+        }
+        .news-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .news-section li {
+            margin: 10px 0;
+        }
+        .news-section a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+        .news-section a:hover {
+            text-decoration: underline;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background: #f4f4f4;
+        }
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            text-align: center;
+            color: #007BFF;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .btn-more {
+            margin: 10px 0;
+            display: block;
+            text-align: center;
+            background: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-more:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ english_name }} ({{ symbol }}) 주가정보</h1>
+        {% if korean_name %}
+            <h2>한국어 회사 이름: {{ korean_name }}</h2>
+        {% endif %}
+        <div class="content-wrapper">
+            <!-- 뉴스 섹션 -->
+            <div class="news-section">
+                <h2>관련 뉴스</h2>
+                <ul>
+                    {% if related_news %}
+                        {% for news in related_news %}
+                            <li><a href="{{ news.url }}" target="_blank">{{ news.title }}</a></li>
+                        {% endfor %}
+                    {% else %}
+                        <p>관련 뉴스가 없습니다.</p>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <!-- 차트 섹션 -->
+            <div class="chart-section">
+                <h2>주가 차트</h2>
+                <div class="chart-container">
+                    <canvas id="stockChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="stock-section">
+            <h2>주식 데이터</h2>
+            {% if stock_data %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>날짜</th>
+                            <th>시가</th>
+                            <th>종가</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTableBody">
+                        {% for row in stock_data[:10] %}  <!-- 처음 10개만 표시 -->
+                        <tr>
+                            <td>{{ row.date }}</td>
+                            <td>{{ row.open }}</td>
+                            <td>{{ row.close }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button id="loadMore" class="btn-more">더보기</button>
+            {% else %}
+                <p>주식 데이터가 없습니다. 올바른 종목 코드를 입력하세요.</p>
+            {% endif %}
+        </div>
+        <a href="/" class="back-link">메인으로 돌아가기</a>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 차트 데이터를 파이썬에서 전달받음
+        const stockData = {{ stock_data | tojson }};
+        const labels = stockData.map(item => item.date);  // 날짜 배열
+        const openPrices = stockData.map(item => item.open);  // 시가 배열
+        const closePrices = stockData.map(item => item.close);  // 종가 배열
+
+        // 차트를 생성
+        const ctx = document.getElementById('stockChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '종가',
+                        data: closePrices,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '날짜'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '가격 (USD)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // "더보기" 기능
+        const tableBody = document.getElementById('stockTableBody');
+        const loadMoreBtn = document.getElementById('loadMore');
+        let currentIndex = 10;  // 현재 표시된 데이터 개수
+
+        loadMoreBtn.addEventListener('click', () => {
+            const additionalRows = stockData.slice(currentIndex, currentIndex + 10);  // 다음 10개 데이터
+            additionalRows.forEach(row => {
+                const newRow = `
+                    <tr>
+                        <td>${row.date}</td>
+                        <td>${row.open}</td>
+                        <td>${row.close}</td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', newRow);
+            });
+            currentIndex += 10;
+
+            // 데이터가 끝났으면 버튼 숨기기
+            if (currentIndex >= stockData.length) {
+                loadMoreBtn.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
