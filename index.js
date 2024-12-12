@@ -1,77 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 데이터 검색</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f9;
-        }
-        .container {
-            text-align: center;
-            padding: 20px;
-            background: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-        }
-        h1 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-        label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: bold;
-            color: #555;
-        }
-        input {
-            padding: 10px;
-            font-size: 16px;
-            width: 100%;
-            max-width: 300px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            color: #fff;
-            background-color: #007BFF;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .example {
-            margin-top: 10px;
-            color: #666;
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>주식 데이터를 검색하세요</h1>
-        <form action="/stock" method="POST">
-            <label for="symbol">종목 코드 입력:</label>
-            <input type="text" id="symbol" name="symbol" placeholder="예: TSLA, AAPL, 005930.KQ" required>
-            <button type="submit">검색</button>
-        </form>
-        <div class="example">
-            <p>예시: TSLA (Tesla), AAPL (Apple), 005930.KQ (삼성전자)</p>
-        </div>
-    </div>
-</body>
-</html>
+const express = require("express");
+const axios = require("axios");
+const path = require("path");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// EJS 템플릿 엔진 설정
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+// 정적 파일 서비스 (CSS, 이미지 등)
+app.use(express.static(path.join(__dirname, "public")));
+
+// 라우트: 홈 페이지
+app.get("/", (req, res) => {
+  res.render("index", { title: "Dynamic HTML App" });
+});
+
+// 라우트: 주식 데이터
+app.get("/stock", async (req, res) => {
+  const symbol = req.query.symbol || "AAPL"; // 기본값은 애플 주식
+  try {
+    const response = await axios.get(
+      `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`
+    );
+
+    const stockData = response.data.quoteResponse.result[0];
+    res.render("stock", { stock: stockData });
+  } catch (error) {
+    console.error(error);
+    res.render("stock", { stock: null });
+  }
+});
+
+// 서버 시작
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
