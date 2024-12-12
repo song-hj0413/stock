@@ -1,16 +1,13 @@
-
 {
-  "name": "your-project-name",
+  "name": "dynamic-html-app",
   "version": "1.0.0",
-  "description": "Your project description",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.18.2"
-  },
-  "devDependencies": {},
-  "author": "Your Name",
-  "license": "ISC"
+    "express": "^4.18.2",
+    "ejs": "^3.1.8",
+    "axios": "^1.5.0"
+  }
 }
